@@ -4,24 +4,17 @@ from langchain.document_loaders import TextLoader
 from langchain.embeddings import SentenceTransformerEmbeddings
 
 
-def load_file(file_path):
+def load_and_embed(file_path):
     """
     loads the file 
-    returns chunks of documents as list
+    returns db of documents and embeddings
     """
     
     loader = TextLoader(file_path)
     pages = loader.load_and_split()
-    return pages
-
-
-def get_embeddings(input_pages):
-    """
-    takes list of documents
-    returns chroma vectorstore
-    """
+    
     embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
-    db = Chroma.from_documents(input_pages, embeddings)
+    db = Chroma.from_documents(pages, embeddings)
 
     return db
     
@@ -31,22 +24,31 @@ def get_similar_category(txt_emb, all_categories):
     takes text embeddings and list of all the summaries
     returns the most matched summary (dictionary) based on similarity score
     """
-    scores = {}
+    scores = []
+    result_dict = {}
     for category, summary in all_categories.items():
-        matching_docs_with_score = txt_emb.similarity_search_with_score(summary)
-        scores[category] = matching_docs_with_score[0][-1]
 
-    min_score = min(scores, key=scores.get)
+        matching_score = txt_emb.similarity_search_with_score(summary)
+        score = matching_score[0][-1]
+        category_to_score = {
+            category: score
+        }
+        scores.append(category_to_score)
+    
+    score = sorted(scores, key=lambda x: list(x.values()))[0]
 
-    most_similar = {
-        min_score: all_categories[min_score]
-    }
-    print(most_similar)
+    score_key = list(score.keys())[0]
+    result_dict[score_key] = all_categories[score_key]
+    
+    print(result_dict)
 
-    return most_similar
+    return result_dict
 
 
 if __name__ == "__main__":
-    file_docs = load_file("reviews_files/allergy.txt")
-    text_embeddings = get_embeddings(file_docs)
-    similar_summary = get_similar_category(text_embeddings, category_summaries)
+
+    directory_path = "review_files"
+
+    file_embeddings = load_and_embed(directory_path + "/" + "food_quality_1.txt")
+    similar_summary = get_similar_category(file_embeddings, category_summaries)
+
