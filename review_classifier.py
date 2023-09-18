@@ -28,7 +28,7 @@ def get_similar_category(txt_emb, all_categories):
     result_dict = {}
     for category, summary in all_categories.items():
 
-        matching_score = txt_emb.similarity_search_with_score(summary)
+        matching_score = txt_emb.similarity_search_with_score(summary, k=1)
         score = matching_score[0][-1]
         category_to_score = {
             category: score
